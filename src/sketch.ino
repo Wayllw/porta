@@ -81,7 +81,7 @@ bool verificarLoginEEPROM(const String& email, const String& pass) {
 
 void sendHtml() {
   if (utilizadorAtual == "") {
-    return server.send(403, "text/plain", "Acesso negado");
+      return server.send(403, "text/plain", "Acesso negado");
   }
   String response = MainPage;
   response.replace("green_TEXT", doorState ? "Aberto" : "Fechado");
@@ -106,6 +106,8 @@ void setup() {
     DynamicJsonDocument doc(512);
     deserializeJson(doc, server.arg("plain"));
     guardarUtilizadorEEPROM(doc["nome"], doc["email"], doc["password"], doc["CPassword"]);
+
+
   });
 
   
