@@ -21,6 +21,7 @@ int green = 27;
 int red = 26;
 bool doorState = false;
 bool loginOK = false;
+String utilizadorAtual = "";
 
 // ----- Funções EEPROM -----
 
@@ -40,7 +41,7 @@ void guardarUtilizadorEEPROM(const String& nome, const String& email, const Stri
     JsonObject novoUser = doc.createNestedObject();
     novoUser["nome"] = nome;
     novoUser["email"] = email;
-    novoUser["pass"] = password;
+    novoUser["password"] = password;
 
     String novoJSON;
     serializeJson(doc, novoJSON);
@@ -62,12 +63,15 @@ bool verificarLoginEEPROM(const String& email, const String& pass) {
     dados += c;
   }
 
+  Serial.println("Dados lidos da EEPROM:");
+  Serial.println(dados);  // <-- Aqui é onde vês o conteúdo JSON
+
   DynamicJsonDocument doc(1024);
   DeserializationError err = deserializeJson(doc, dados);
   if (err) return false;
 
   for (JsonObject user : doc.as<JsonArray>()) {
-    if (user["email"] == email && user["pass"] == pass) return true;
+    if (user["email"] == email && user["password"] == pass) return true;
   }
 
   return false;
@@ -76,6 +80,9 @@ bool verificarLoginEEPROM(const String& email, const String& pass) {
 // ----- Código principal -----
 
 void sendHtml() {
+  if (utilizadorAtual == "") {
+    return server.send(403, "text/plain", "Acesso negado");
+  }
   String response = MainPage;
   response.replace("green_TEXT", doorState ? "Aberto" : "Fechado");
   server.send(200, "text/html", response);
@@ -101,12 +108,14 @@ void setup() {
     guardarUtilizadorEEPROM(doc["nome"], doc["email"], doc["password"], doc["CPassword"]);
   });
 
+  
+
   server.on("/login", HTTP_POST, []() {
     if (!server.hasArg("plain")) return server.send(400, "text/plain", "Dados inválidos");
     DynamicJsonDocument doc(256);
     deserializeJson(doc, server.arg("plain"));
     if (verificarLoginEEPROM(doc["email"], doc["password"])) {
-      loginOK = true;
+      utilizadorAtual = doc["email"].as<String>();
       server.send(200, "text/plain", "Login com sucesso!");
     } else {
       server.send(403, "text/plain", "Credenciais inválidas.");
@@ -114,7 +123,7 @@ void setup() {
   });
 
   server.on(UriBraces("/toggle/{}"), []() {
-    if (!loginOK) return server.send(403, "text/plain", "Acesso negado");
+    
     doorState = !doorState;
     digitalWrite(green, doorState);
     digitalWrite(red, !doorState);

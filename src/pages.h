@@ -87,7 +87,6 @@ extern const char *RegisterPage = R"(
 
 
 
-
 extern const char *LoginPage = R"(
   <!DOCTYPE html>
   <html lang="pt">
@@ -96,11 +95,9 @@ extern const char *LoginPage = R"(
     <title>Login</title>
   </head>
   <body>
-
         
     <h2>Menu</h2>
     <a href="/" class="btn green_TEXT">Menu</a>
-
 
     <h2>Login</h2>
 
@@ -110,7 +107,6 @@ extern const char *LoginPage = R"(
       
       <label>Password:</label><br>
       <input type="password" id="password" required><br><br>
-
       
       <button type="submit">Login</button>
     </form>
@@ -130,12 +126,15 @@ extern const char *LoginPage = R"(
           },
           body: JSON.stringify({ email, password })
         })
-        .then(response => response.text())
-        .then(data => {
-          document.getElementById("resposta").textContent = data;
-        });
+        .then(response => response.text().then(data => {
+          if (response.status === 200) {
+            window.location.href = "/main";
+          } else {
+            document.getElementById("resposta").textContent = data;
+          }
+        }));
       });
-    </script>
+      </script>
   </body>
   </html>
 )";
