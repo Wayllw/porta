@@ -166,7 +166,7 @@ extern const char *Menu = R"(
           <a href="/registar" class="btn green_TEXT">Registo</a>
 
           <h2>Login</h2>
-          <a href="/login" class="btn green_TEXT">Login</a>
+          <a href="/main" class="btn green_TEXT">Main</a>
         </div>
       </body>
     </html>
