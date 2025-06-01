@@ -17,6 +17,10 @@ extern const char *MainPage = R"(
             
       <body>
         <h1>ESP32 Web Server</h1>
+        <div>
+          <h2>Logout</h2>
+          <a href="/logout">Logout</a>
+        </div>
 
         <div>
           <h2>Porta</h2>
