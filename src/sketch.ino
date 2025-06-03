@@ -9,12 +9,13 @@
 #include "pages.h"
 #include <PubSubClient.h>
 
-#define WIFI_SSID "Wokwi-GUEST"
-#define WIFI_PASSWORD ""
+#define WIFI_SSID "Joaquim-Colibri"
+#define WIFI_PASSWORD "arrozdepato"
 #define WIFI_CHANNEL 6
-#define MQTT_BROKER "127.0.0.1"  // ou o IP do teu broker
+
+#define MQTT_BROKER "192.168.170.5"
 #define MQTT_PORT 1883
-#define MQTT_TOPIC "esp32/porta"         // tópico de envio
+#define MQTT_TOPIC "ipsantarem/esp32/porta"
 
 
 
@@ -32,10 +33,17 @@ bool doorState = false;
 // ----------- FUNÇÕES ----------
 
 void reconnectMQTT() {
-  while (!mqttClient.connected()) {
-    Serial.print("A tentar ligar ao MQTT...");
+  static bool estavaLigado = false;
+
+  if (!mqttClient.connected()) {
+    if (estavaLigado) {
+      Serial.println("Desligado do MQTT. A tentar reconectar...");
+      estavaLigado = false;
+    }
+
     if (mqttClient.connect("ESP32Client")) {
-      Serial.println("Ligado!");
+      Serial.println("Ligado ao MQTT!");
+      estavaLigado = true;
     } else {
       Serial.print("Falha, rc=");
       Serial.print(mqttClient.state());
@@ -44,6 +52,7 @@ void reconnectMQTT() {
     }
   }
 }
+
 
 String autenticarRequisicaoEmail() {
   String authHeader = server.header("Authorization");
@@ -158,12 +167,6 @@ bool autenticarRequisicao() {
 // Envia a página principal
 void sendHtml() {
 
-
-  
-
-
-
-
   if (!autenticarRequisicao()) {
     return server.requestAuthentication();
   }
@@ -177,8 +180,27 @@ void sendHtml() {
 
 void setup() {
   Serial.begin(115200);
+  Serial.println("Olá do ESP32-S3 via PlatformIO!");
+ Serial.print("A ligar ao Wi-Fi...");
   WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
-  while (WiFi.status() != WL_CONNECTED) delay(100);
+
+  int tentativas = 0;
+  while (WiFi.status() != WL_CONNECTED && tentativas < 20) {
+    delay(500);
+    Serial.print(".");
+    tentativas++;
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println();
+    Serial.print("Conectado à rede Wi-Fi. Endereço IP: ");
+    Serial.println(WiFi.localIP());
+  } else {
+    Serial.println();
+    Serial.println("Falha ao conectar à rede Wi-Fi.");
+  }
+
+  mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
 
   pinMode(green, OUTPUT);
   pinMode(red, OUTPUT);
@@ -226,12 +248,16 @@ void setup() {
   server.begin();
   Serial.println("HTTP server iniciado.");
 }
-
 void loop() {
   server.handleClient();
+
   if (!mqttClient.connected()) {
     reconnectMQTT();
   }
+
   mqttClient.loop();
 
+  delay(10);  // <- pausa mínima para evitar WDT reset
 }
+
+
