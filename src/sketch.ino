@@ -6,12 +6,13 @@
 #include <ArduinoJson.h>
 #include <Preferences.h>
 #include <esp_crc.h>
+#include <WiFiManager.h>
 #include "pages.h"
 #include <PubSubClient.h>
 
-#define WIFI_SSID "Joaquim-Colibri"
-#define WIFI_PASSWORD "arrozdepato"
-#define WIFI_CHANNEL 6
+// #define WIFI_SSID "Joaquim-Colibri"
+// #define WIFI_PASSWORD "arrozdepato"
+// #define WIFI_CHANNEL 6
 
 #define MQTT_BROKER "192.168.170.5"
 #define MQTT_PORT 1883
@@ -179,26 +180,18 @@ void sendHtml() {
 // ---------- SETUP & LOOP ----------
 
 void setup() {
-  Serial.begin(115200);
-  Serial.println("Olá do ESP32-S3 via PlatformIO!");
- Serial.print("A ligar ao Wi-Fi...");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD, WIFI_CHANNEL);
+  WiFiManager wm;
 
-  int tentativas = 0;
-  while (WiFi.status() != WL_CONNECTED && tentativas < 20) {
-    delay(500);
-    Serial.print(".");
-    tentativas++;
+  bool success = wm.autoConnect("ESP32-Config");
+
+  if (!success) {
+    Serial.println("Falha ao conectar, a reiniciar...");
+    delay(3000);
+    ESP.restart();
   }
 
-  if (WiFi.status() == WL_CONNECTED) {
-    Serial.println();
-    Serial.print("Conectado à rede Wi-Fi. Endereço IP: ");
-    Serial.println(WiFi.localIP());
-  } else {
-    Serial.println();
-    Serial.println("Falha ao conectar à rede Wi-Fi.");
-  }
+  Serial.println("Conectado! IP: " + WiFi.localIP().toString());
+
 
   mqttClient.setServer(MQTT_BROKER, MQTT_PORT);
 
@@ -206,7 +199,11 @@ void setup() {
   pinMode(red, OUTPUT);
   myservo.attach(servopin);
 
-  server.on("/", []() { server.send(200, "text/html", Menu); });
+  server.on("/", []() {
+    if (!autenticarRequisicao()) return server.requestAuthentication();
+    server.send(200, "text/html", Menu);
+  });
+
   server.on("/registar", HTTP_GET, []() { server.send(200, "text/html", RegisterPage); });
   server.on("/login", []() { server.send(200, "text/html", LoginPage); });
 
